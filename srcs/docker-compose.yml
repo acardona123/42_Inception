@@ -1,0 +1,30 @@
+version: '1.0'
+
+services:
+  MariaDB:
+    image: MariaDB
+    env_file:
+    -do_not_share.env
+    ports:
+      -3306:3306
+    restart: always
+    volumes:
+      -${BASE_PATH}/MariaDB_volume
+
+  # WordPressPHP:
+  #   image: WordpressPHP
+  #   env_file:
+  #     -do_not_share.env
+  #   restart: always
+  #   ports:
+  #     -9000:9000
+  #   volumes:
+  #     -${BASE_PATH}/WordpressPHP_volume
+
+  # NGINX:
+  #   image: NGINX
+  #   env_file:
+  #     -do_not_share.env
+  #   restart: always
+  #   ports:
+  #     -443:443

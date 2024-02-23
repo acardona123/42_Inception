@@ -2,7 +2,8 @@ sudo
 ---
 
 in su mod:
-	sudo adduser acardona sudo
+	visudo --> adding the line "username  ALL=(ALL)  ALL" (ctrl o and ctrl x)
+	
 control:
 	groups acardona
 
@@ -15,7 +16,7 @@ in virtualbox:
 	adding the ports
 
 control:
-	systmctl ststud ssh
+	systmctl status ssh
 
 ===================================	
 git

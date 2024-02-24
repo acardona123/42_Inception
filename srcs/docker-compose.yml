@@ -1,15 +1,18 @@
 version: '1.0'
 
 services:
-  MariaDB:
-    image: MariaDB
+  mariadb:
+    # image: MariaDB
+    build:
+      context: ./requirements/mariadb/
+      dockerfile: Dockerfile
     env_file:
-    -do_not_share.env
+    - .env
     ports:
-      -3306:3306
+      - 3306:3306
     restart: always
     volumes:
-      -${BASE_PATH}/MariaDB_volume
+      - ${BASE_PATH}/mariadb_volume
 
   # WordPressPHP:
   #   image: WordpressPHP

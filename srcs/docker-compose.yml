@@ -1,18 +1,27 @@
-version: '1.0'
+version: '3.1'
+
+volumes:
+  mariadb:
+    name: mariadb
+    driver: local
+    driver_opts:
+            device: /home/acardona/Documents/Inception/test_volume/vmariadb
+            o: bind
+            type: none
+
 
 services:
   mariadb:
-    # image: MariaDB
     build:
       context: ./requirements/mariadb/
       dockerfile: Dockerfile
     env_file:
-    - .env
+      - .env
     ports:
-      - 3306:3306
+      -  3306:3306
     restart: always
     volumes:
-      - ${BASE_PATH}/mariadb_volume
+      - mariadb:/var/lib/mysql
 
   # WordPressPHP:
   #   image: WordpressPHP

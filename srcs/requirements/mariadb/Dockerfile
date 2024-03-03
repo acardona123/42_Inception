@@ -7,7 +7,9 @@ MAINTAINER acardona
 
 RUN apt update
 RUN apt install -y mariadb-server
-COPY ./tools/test.sh /tmp/test.sh
-RUN chmod +x /tmp/test.sh
+COPY ./tools/mariadb_config.sh /tmp/mariadb_config.sh
+RUN chmod +x /tmp/mariadb_config.sh
 # COPY ./tools/mysql_init_commands.sql /tmp/mysql_init_commands.sql
-ENTRYPOINT ["/tmp/test.sh"]
+ENTRYPOINT ["/tmp/mariadb_config.sh"]
+
+

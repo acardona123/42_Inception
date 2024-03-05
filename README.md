@@ -97,3 +97,8 @@ To add users in a docker you have to add them with the command line `useradd -u 
 
 
 ## image creation
+
+### build
+`docker build <repo>` options:
+- `-t <tag_name>` to add a tag (img_name:version)
+- `--no-cache`

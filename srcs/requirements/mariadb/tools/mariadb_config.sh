@@ -13,7 +13,8 @@ if [ "a$LOCAL_MYSQL_ROOT_PASSWORD" = "a" ] || [ "a$LOCAL_MYSQL_USER" = "a" ] || 
 fi
 
 #script to modify the config and open the port and bind-address for a less restrictive one
-cat /etc/mysql/my.cnf | sed s/"# port"/"port"/g | sed s/"# Import all"/"bind-address = 0.0.0.0\n\n# Import all"/g  > /tmp/my.cnf && mv /tmp/my.cnf /etc/mysql/my.cnf
+sed -i s/"# port"/"port"/g /etc/mysql/my.cnf
+sed -i s/"\n# Import all"/"bind-address = 0.0.0.0\n\n# Import all"/g /etc/mysql/my.cnf
 
 echo "  - installation script: mysql_install_db"
 # script that properly lunch mysql fo mariadb
@@ -32,6 +33,13 @@ echo "  - adding $LOCAL_MYSQL_USER as an admin"
 mysql -e "DELETE FROM mysql.user WHERE User='';"
 mysql -e "CREATE USER '$LOCAL_MYSQL_USER'@'localhost' IDENTIFIED VIA unix_socket OR mysql_native_password USING PASSWORD('$LOCAL_MYSQL_USER_PASSWORD');"
 mysql -e "GRANT ALL PRIVILEGES ON *.* TO '$LOCAL_MYSQL_USER'@'localhost' WITH GRANT OPTION;"
+mysql -e "FLUSH PRIVILEGES;"
+
+
+#to check
+mysql -e "CREATE DATABASE $MYSQL_DB_NAME;"
+mysql -e "GRANT ALL PRIVILEGES ON $MYSQL_DB_NAME.* TO '$LOCAL_MYSQL_USER'@'localhost' IDENTIFIED BY '$LOCAL_MYSQL_USER_PASSWORD';"
+mysql -e "GRANT ALL PRIVILEGES ON $MYSQL_DB_NAME.* TO 'root'@'localhost'  WITH GRANT OPTION;"
 mysql -e "FLUSH PRIVILEGES;"
 
 

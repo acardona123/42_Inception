@@ -1,74 +1,71 @@
-version: '3.1'
+version: '3.8'
 
 networks:
   inception:
     name: inception
 
-volumes:
-  mariadb:
-    name: mariadb
-    driver: local
-    driver_opts:
-      device: /home/acardona/data/mariadb
-      o: bind
-      type: none
-  wordpress:
-    name: wordpress
-    driver: local
-    driver_opts:
-      device: /home/acardona/data/wordpress
-      o: bind
-      type: none
-
 services:
   mariadb:
     container_name: mariadb
     build: ./requirements/mariadb/
-    image: mariadb:42
-    restart: unless-stopped
+    # image: mariadb:42
+    # restart: always
     environment:
-      - MYSQL_DB_NAME=${MYSQL_DB_NAME}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_USER_PASSWORD=${MYSQL_USER_PASSWORD}
-  #   ports:
-  #     -  3306:3306
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     volumes:
-      - mariadb:/var/lib/mysql
+      - v_mariadb:/var/lib/mysql
     networks:
      - inception
 
   wordpress:
     container_name: wordpress
-    build: ./requirements/wordpress/
-    image: wordpress:42
     depends_on:
-      mariadb:
-        condition: service_started
-    restart: unless-stopped
+      - mariadb
+    build: ./requirements/wordpress/
+    # image: wordpress:42
+    # image: wordpress:fpm
+    # restart: always
     environment:
-      - WORDPRESS_DB_NAME=${MYSQL_DB_NAME}
-      - WORDPRESS_DB_USER=${MYSQL_USER}
-      - WORDPRESS_DB_PASSWORD=${MYSQL_USER_PASSWORD}
       - WORDPRESS_DB_HOST=mariadb:3306
-    volumes:
-      - wordpress:/var/www/html
+      - WORDPRESS_DB_NAME=${MYSQL_DATABASE}
+      - WORDPRESS_DB_USER=${MYSQL_USER}
+      - WORDPRESS_DB_PASSWORD=${MYSQL_PASSWORD}
+      - WORDPRESS_DEBUG="1"
     networks:
-      - inception
+     - inception
+    volumes:
+      - v_wordpress:/var/www/html
 
   nginx:
     container_name: nginx
-    build: ./requirements/nginx/
-    image: nginx:42
     depends_on:
-      wordpress:
-        condition: service_started
-    restart: unless-stopped
-    env_file:
-      - .env
+      - wordpress
+    build: ./requirements/nginx/
+    # image: nginx:42
+    # restart: always
     ports:
-      - 443:8043
+      - "80:80"
     volumes:
-      - wordpress:/var/www/html
+      # - ./wordpress.conf:/etc/nginx/conf.d/wordpress.conf
+      - v_wordpress:/var/www/html
     networks:
      - inception
+
+volumes:
+  v_mariadb:
+    name: v_mariadb
+    driver: local
+    driver_opts:
+      device: ${VOLUMES_DIR}/mariadb
+      o: bind
+      type: none
+  v_wordpress:
+    name: v_wordpress
+    driver: local
+    driver_opts:
+      device: ${VOLUMES_DIR}/wordpress
+      o: bind
+      type: none

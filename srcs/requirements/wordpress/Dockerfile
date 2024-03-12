@@ -1,7 +1,8 @@
 FROM debian:bullseye
 
 RUN apt update -y && apt upgrade -y \
-    && apt-get install -y wget unzip php php-curl php-fpm php-bcmath php-gd php-soap php-zip php-curl php-mbstring php-mysqlnd php-gd php-xml php-intl php-zip
+    # && apt install wget unzip php7.4-fpm -y
+    && apt-get install -y wget unzip php7.4 php7.4-curl php7.4-fpm php7.4-bcmath php7.4-gd php7.4-soap php7.4-zip php7.4-curl php7.4-mbstring php7.4-mysqlnd php7.4-gd php7.4-xml php7.4-intl php7.4-zip
 
 RUN sed -i s/"max_execution_time = 30"/"max_execution_time = 300"/g /etc/php/7.4/fpm/php.ini \
     && sed -i s/"memory_limit = 128M"/"memory_limit = 512M"/g /etc/php/7.4/fpm/php.ini \
@@ -24,4 +25,17 @@ RUN cd /var/www/html/wordpress \
 RUN chown -R www-data:www-data /var/www/html/wordpress/
 # RUN chmod -R 755 *
 
-ENTRYPOINT ["sleep", "infinity"]
+ENTRYPOINT ["sleep", "infinity"]    
+
+WORKDIR /var/www/html
+
+
+
+COPY /tools/wordpress_config.sh /tmp/wordpress_config.sh
+RUN chmod 777 /tmp/wordpress_config.sh
+
+#  For server domain name
+# COPY conf/custom-apache-config.conf /etc/apache2/sites-available/000-default.conf
+
+
+ENTRYPOINT ["/tmp/wordpress_config.sh"]

@@ -2,3 +2,4 @@
 #destroying all docker containers, images, volumes:
 docker compose down ; docker rm -f $(docker ps -qa) ; docker rmi $(docker images -q) ; docker volume rm $(docker volume ls -q) ; sudo rm -rf /home/acardona/data/mariadb/* /home/acardona/data/wordpress/*
 
+docker system prune -fa

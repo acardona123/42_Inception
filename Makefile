@@ -3,18 +3,37 @@ VOLUMES_DIR	=	/home/acardona/data
 
 all : up
 
-up:
-	@if ! [ -d $(VOLUMES_DIR)/wordpress/ ]; then mkdir $(VOLUMES_DIR)/wordpress/; fi
-	@if ! [ -d $(VOLUMES_DIR)/mariadb/ ]; then mkdir $(VOLUMES_DIR)/mariadb/; fi
+gen_dir:
+	mkdir -p $(VOLUMES_DIR)/wordpress/
+	mkdir -p $(VOLUMES_DIR)/mariadb/
+
+up: gen_dir
 	VOLUMES_DIR=$(VOLUMES_DIR) docker compose -f $(SOURCE_DIR)/docker-compose.yml up --build
 
+upd: gen_dir
+	VOLUMES_DIR=$(VOLUMES_DIR) docker compose -f $(SOURCE_DIR)/docker-compose.yml up --build -d
+
 down: 
-	VOLUMES_DIR=$(VOLUMES_DIR) docker compose -v -f $(SOURCE_DIR)/docker-compose.yml down
+	VOLUMES_DIR=$(VOLUMES_DIR) docker compose -f $(SOURCE_DIR)/docker-compose.yml down
 
-downv : down
-	sudo rm -rf $(VOLUMES_DIR)/wordpress/ $(VOLUMES_DIR)/mariadb/
+downv :
+	VOLUMES_DIR=$(VOLUMES_DIR) docker compose -f $(SOURCE_DIR)/docker-compose.yml down -v
 
-prune : downv
+downi : down
+	docker rmi -f $(docker image ls -q) 2>/dev/null || true
+
+downvi : downv downi
+
+stop :
+	docker compose -f $(SOURCE_DIR)/docker-compose.yml stop
+
+start:
+	docker compose -f $(SOURCE_DIR)/docker-compose.yml start
+
+prune : downvi
 	docker system prune -fa
 
-.PHONY: up down downv prune
+rm_dir: downv
+	sudo rm -rf $(VOLUMES_DIR)/wordpress/ $(VOLUMES_DIR)/mariadb/
+
+.PHONY: gen_dir up upd down downv downi downvi stop start prune rm_dir

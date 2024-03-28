@@ -1,41 +1,27 @@
 FROM debian:bullseye
 
-RUN apt update -y && apt upgrade -y \
-    # && apt install wget unzip php7.4-fpm -y
-    && apt-get install -y wget unzip php7.4 php7.4-curl php7.4-fpm php7.4-bcmath php7.4-gd php7.4-soap php7.4-zip php7.4-curl php7.4-mbstring php7.4-mysqlnd php7.4-gd php7.4-xml php7.4-intl php7.4-zip
+MAINTAINER acardona
 
-RUN sed -i s/"max_execution_time = 30"/"max_execution_time = 300"/g /etc/php/7.4/fpm/php.ini \
-    && sed -i s/"memory_limit = 128M"/"memory_limit = 512M"/g /etc/php/7.4/fpm/php.ini \
-    && sed -i s/"post_max_size = 8M"/"post_max_size = 128M"/g /etc/php/7.4/fpm/php.ini \
-    && sed -i s/"upload_max_filesize = 2M"/"upload_max_filesize = 128M"/g /etc/php/7.4/fpm/php.ini
+RUN apt update \
+    && apt-get install -y wget php-cli php-mysql php-curl php-gd php-intl php-fpm
 
-RUN cd /tmp \
-    && wget https://wordpress.org/latest.zip \
-    && mkdir -p /var/www/html/ \
-    && rm -rf /var/www/html/* \
-    && unzip latest.zip -d /var/www/html/ \
-    && rm latest.zip
+RUN wget https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+    && chmod 755 wp-cli.phar \
+    && mv wp-cli.phar /usr/local/bin/wp
 
-RUN cd /var/www/html/wordpress \
-    && cp wp-config-sample.php wp-config.php \
-    && sed -i s/"database_name_here"/"$WORDPRESS_DB_NAME"/g wp-config.php \
-    && sed -i s/"username_here"/"$WORDPRESS_DB_USER"/g wp-config.php \
-    && sed -i s/"password_here"/"$WORDPRESS_DB_PASSWORD"/g wp-config.php
+RUN mkdir -p /var/www/html/ \
+    && cd /var/www/html/ \
+    && wget https://wordpress.org/wordpress-6.4.3.tar.gz --output-document="wordpress.tar.gz" \
+    && tar -xvzf wordpress.tar.gz \
+    && rm -rf wordpress.tar.gz
 
-RUN chown -R www-data:www-data /var/www/html/wordpress/
-# RUN chmod -R 755 *
+COPY ./conf/www.conf /etc/php/7.4/fpm/pool.d/wordpress.conf
+COPY ./tools/startWordpress.sh /tmp/startWordpress.sh
 
-ENTRYPOINT ["sleep", "infinity"]    
+RUN chown -R www-data:www-data /var/www/html/wordpress \
+    && chmod -R 755 /var/www/html/wordpress \
+    && chmod 755 /tmp/startWordpress.sh
 
-WORKDIR /var/www/html
+EXPOSE 9000
 
-
-
-COPY /tools/wordpress_config.sh /tmp/wordpress_config.sh
-RUN chmod 777 /tmp/wordpress_config.sh
-
-#  For server domain name
-# COPY conf/custom-apache-config.conf /etc/apache2/sites-available/000-default.conf
-
-
-ENTRYPOINT ["/tmp/wordpress_config.sh"]
+ENTRYPOINT ["bash", "/tmp/startWordpress.sh"]

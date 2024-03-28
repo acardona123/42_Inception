@@ -1,71 +1,87 @@
-version: '3.8'
-
-networks:
-  inception:
-    name: inception
-
 services:
   mariadb:
     container_name: mariadb
     build: ./requirements/mariadb/
-    # image: mariadb:42
-    # restart: always
-    environment:
-      - MYSQL_DATABASE=${MYSQL_DATABASE}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      - MYSQL_USER=${MYSQL_USER}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    image: mariadb:my_image
     volumes:
-      - v_mariadb:/var/lib/mysql
+      - mariadb:/var/lib/mysql
+    expose:
+      - "3306"
     networks:
-     - inception
+      - inception
+    restart: unless-stopped
+    environment:
+      - SQL_ROOT_PASSWORD=${SQL_ROOT_PASSWORD}
+      - SQL_USER=${SQL_USER}
+      - SQL_USER_PASSWORD=${SQL_USER_PASSWORD}
+      - SQL_DATABASE=${SQL_DATABASE}
+    healthcheck:
+      test: mysqladmin ping --host=localhost -p${SQL_ROOT_PASSWORD}
+      interval: 5s
+      timeout: 1s
+      retries: 20
+      start_period: 5s
 
   wordpress:
     container_name: wordpress
-    depends_on:
-      - mariadb
-    build: ./requirements/wordpress/
-    # image: wordpress:42
-    # image: wordpress:fpm
-    # restart: always
-    environment:
-      - WORDPRESS_DB_HOST=mariadb:3306
-      - WORDPRESS_DB_NAME=${MYSQL_DATABASE}
-      - WORDPRESS_DB_USER=${MYSQL_USER}
-      - WORDPRESS_DB_PASSWORD=${MYSQL_PASSWORD}
-      - WORDPRESS_DEBUG="1"
-    networks:
-     - inception
+    build: ./requirements/wordpress
+    image: wordpress:my_image
     volumes:
-      - v_wordpress:/var/www/html
+      - wordpress:/var/www/html/wordpress
+    expose:
+      - "9000"
+    networks:
+      - inception
+    restart: unless-stopped
+    environment:
+      - SQL_HOST=${SQL_HOST}
+      - WP_DOMAIN_NAME=${WP_DOMAIN_NAME}
+      - WP_SITE_TITLE=${WP_SITE_TITLE}
+      - WP_ADMIN_LOGIN=${WP_ADMIN_LOGIN}
+      - WP_ADMIN_PASSWORD=${WP_ADMIN_PASSWORD}
+      - WP_ADMIN_EMAIL=${WP_ADMIN_EMAIL}
+      - WP_USER_LOGIN=${WP_USER_LOGIN}
+      - WP_USER_MAIL=${WP_USER_MAIL}
+      - WP_USER_PASSWORD=${WP_USER_PASSWORD}
+      - SQL_DATABASE=${SQL_DATABASE}
+      - SQL_USER=${SQL_USER}
+      - SQL_USER_PASSWORD=${SQL_USER_PASSWORD}
+    depends_on:
+      mariadb:
+        condition: service_healthy    
 
   nginx:
     container_name: nginx
+    build: ./requirements/nginx
+    image: nginx:my_image
+    volumes:
+      - wordpress:/var/www/html/wordpress
     depends_on:
       - wordpress
-    build: ./requirements/nginx/
-    # image: nginx:42
-    # restart: always
     ports:
-      - "80:80"
-    volumes:
-      # - ./wordpress.conf:/etc/nginx/conf.d/wordpress.conf
-      - v_wordpress:/var/www/html
+      - "443:443"
     networks:
-     - inception
+      - inception
+    restart: unless-stopped
+
 
 volumes:
-  v_mariadb:
+  mariadb:
     name: v_mariadb
     driver: local
     driver_opts:
       device: ${VOLUMES_DIR}/mariadb
-      o: bind
-      type: none
-  v_wordpress:
+      type: 'none'
+      o: 'bind'
+  wordpress:
     name: v_wordpress
     driver: local
     driver_opts:
       device: ${VOLUMES_DIR}/wordpress
-      o: bind
-      type: none
+      type: 'none'
+      o: 'bind'
+
+
+networks:
+  inception:
+    name: inception

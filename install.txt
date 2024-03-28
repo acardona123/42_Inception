@@ -1,0 +1,52 @@
+#  sudo
+
+su mode:
+-> 'sudo visudo'
+--> adding the line 'acardona (ALL:ALL) ALL'
+
+# git 
+apt update;
+apt install git-all -y ;
+git config --global user.email "alex.cardona@free.fr"
+git config --global user.name "acardona"
+
+
+#ssh
+apt install -y ssh;
+
+#Makefile
+apt-get install -y make
+
+
+#vs code
+following this site : https://code.visualstudio.com/docs/setup/linux :
+-> download: https://go.microsoft.com/fwlink/?LinkID=760868
+-> sudo apt install ./Downloads/*.deb
+
+#installing docker
+https://gitlab.com/xavki/docker-v2/-/blob/main/02-premier-pas/premier-pas.sh?ref_type=heads (video docker de Xavski)
+sudo usermod -aG docker $USER
+
+#generating a new ssh key
+ssh-keygen -t rsa
+adding this key to the intra 42
+
+git clone git@vogsphere.42paris.fr:vogsphere/intra-uuid-3d0995e6-5bd8-45cf-a662-f7bd7de694fe-5490803-acardona ~/Documents/inception
+
+mkdir -p ~/Documents/inception/srcs/requirements
+cd ~/Documents/inception/srcs/requirements
+
+mkdir mariadb mariadb/tools mariadb/conf
+touch mariadb/Dockerfile
+touch mariadb/.dockerignore
+cp -r mariadb wordpress
+cp -r mariadb nginx
+
+cd ..
+touch .env  docker-compose.yml
+cd ..
+touch .gitignore Makefile 
+
+(cd ~/Documents/inception/srcs)
+
+

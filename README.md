@@ -1,104 +1,111 @@
-# 42Inception
+<h1 align="center">Inception</h1>
 
-## basics commands
+<p align="center">
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"/>
+  <img src="https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white" alt="Nginx"/>
+  <img src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Linux"/>
+  <img src="https://img.shields.io/badge/GNU%20Make-A42E2B?style=for-the-badge&logo=gnu&logoColor=white" alt="GNU Make"/>
+  <img src="https://img.shields.io/badge/Shell-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white" alt="Shell"/>
+</p>
 
-In order to avoid typing sudo before every docker command you can add the user to the docker group:
-- `sudo usermod -aG docker $USER`
+<p align="center"><strong>A small WordPress hosting stack where every service runs in its own hand-built container, wired together with Docker Compose.</strong></p>
 
-### docker ps
-To display the containers
-- `docker ps`
-Options:
-- `-a` to display all the containers including the ones that are not running anymore
-- `q` (quiet), to only display the containers id
+---
 
-### docker run
-To run a container
-- `docker run <url_registry>/<image_name>:<tag>`
-In the image tag we usually give the image version (`latest` to get the latest version)
-Options :
-- `-d` to detach the program (run in the background)
-- `--name <container name> `to define the name of the container
-- `-ti` to give the container a terminal (if the image allows the use of a terminal)
-- `--rm` to automatically remove the container once it is closed (in which you will be root)
-- `--hostname <host_name` to give a hostname to the container, by default it is the container id
-- `-v <volume_name>:<mountpoint in the container>`
+## 📌 Overview
 
-### docker start
-to start a container that has already been generated with the docker run command
+Before containers, running a web app on a server meant installing its dependencies straight onto the host, where every service shared the same libraries, the same ports and the same failure modes.
+A container packages one process with just the files it needs and nothing else, so services can sit side by side on one machine without stepping on each other.
 
-### docker stop
-to stop the container currently running:
-- `docker stop <container_name or container_id`
+Inception is the 42 project that forces you to build that arrangement by hand: three services (an Nginx reverse proxy, WordPress running on PHP-FPM, and a MariaDB database), each with its own `Dockerfile` starting from a bare Debian image, no ready-made `nginx` or `wordpress` image allowed.
 
-### docker rm
-to remove a container
-- `docker rm <container_name or container_id>`
-Options:
-- `-f` to force the container to stop if it is is currently running, and the remove it 
+The three containers talk over a private Docker network. Only Nginx is reachable from outside, on port 443 with TLS, and it forwards PHP requests to the WordPress container over FastCGI; WordPress in turn connects to MariaDB. The database files and the WordPress installation live in volumes bind-mounted to a directory on the host, so a full `docker compose down -v` and rebuild comes back with the same content. Credentials are passed in through environment variables rather than baked into the images, and each container starts its service as the foreground process so Docker can supervise and restart it.
 
-### docker exec
-to execute a command in a container
-`docker exec -ti <container_name> <command>` with -ti to get a terminal
-Example: docker exec -ti myContainer bash
+## 🎯 Objectives
 
-## the volumes
+- Write the `Dockerfile` for each service from a Debian base image, installing and configuring the service by hand instead of pulling a prebuilt image.
+- Connect the containers over a dedicated Docker network and publish a single entry point: Nginx on 443, TLS 1.2 / 1.3 only.
+- Keep the MariaDB data and the WordPress files in volumes that survive tearing the stack down and rebuilding it.
+- Pass every secret (database passwords, WordPress admin credentials) through an `.env` file and the environment, never through the image layers.
+- Have each container run its service as PID 1 in the foreground, with a real init flow rather than a `tail -f`-style hack, and let Nginx wait on a MariaDB healthcheck before WordPress starts.
 
-By default the data of a container isn't persistent: it disappear when the container is destroyed. That's wy there are Containers Volumes.
-Pros:
-- allows data persistance
-- can be shared between containers (with multi-access and permission management)
-- can be local or remote
-- useful for backup
+## 🛠️ Tech Stack
 
-### docker volume commands
-#### docker volume ls
-to see all the existing volumes
-#### docker volume create
-to create a volume:
-`docker volume create <VolumeName>`
-To run a docker using it: 
-`docker run -v <volume_name>:<mountpoint in the container> <container_name>:<tag>'
-	Example:
-	docker volume create mynginx
-	docker run -v mynginx:/usr/share/nginx/html/html nginx:latest
-A container can be mounted on a volume already used vy another container (mod multicontainer)
-#### docker volume inspect
-to inspect the metadata of a volume
-`docker volume inspect <volume_name>`
-This display the mounting point of the docker. Its content ca be read/write in sudo mode
-#### docker volume rm
-to remove a docker volume. Requires that this volume isn't currently used by any container (need to be stopped)
-`docker rm <volume_name>`
+| Layer | Choice |
+|---|---|
+| Base image | `debian:bullseye` for all three services |
+| Web server | Nginx, self-signed certificate, TLS 1.2 / 1.3 |
+| Application | WordPress 6.4.3 on PHP-FPM 7.4, provisioned with WP-CLI |
+| Database | MariaDB, initialised by a startup script |
+| Orchestration | Docker Compose, one bridge network, two bind-mounted named volumes |
+| Build | GNU Make wrapping `docker compose` |
 
-### types de volumes
-Remind: docker mounts are based on basic mounts:
-	to mount: `sudo mount --bind <source> <dest_to_mount_on_source>`
-	to see the architecture with all mounts: `findmnt`
-	to unmount: `sudo umount <dest_to_mount_on_source>`
-#### bind mount
-Do a manual mount, the data in the repo used as a source in the mount are overwriting the volume data of the image. 
-#### volumes docker
-when the container is run with -v. The data is stored in /var/lib/docker/<volume_name> and is persistent in this repo. The volume data of the image are imported in the volume
-#### TMPFS
-Temporary memory space to work, lost when the container is stopped. (As for the bind mount the image data are overwritten)
-#### How to use them ?
-`-v`or`--volume`	<volume name>:<dst_path> -> use a volume
-					<path_src>:<path_dst> -> bind
-`--mount type=<type>, ...`	with type = bind/mount/tmpfs
-- mount: `--mount type=mount,source=<path>,destination=<path>[,readonly/readwrite]`
-- volume: `--mount type=volume,source=<volume_name>,destination=<path>`
-- tmpfs: `--mount type=tmpfs,destination=<path>`
+## 🚀 Getting Started
 
-### UserId and volumes
-In the container the users are identified by their userId. In order to run an image using a specific user you must use `docker run`  with the option `-u <user_id or user_name>`.
-To add users in a docker you have to add them with the command line `useradd -u <userID> <user_name>` . If you want to have specific users at the creation of the image this command has to be added to the Dockerfile, prefixed by `RUN`
-(The `docker exec ...` can also be used with a specific user (by default 0=root) with the same option).
+Requires Docker and the Docker Compose plugin on a Linux host.
 
+```bash
+git clone https://github.com/acardona123/42_Inception.git
+cd 42_Inception
+```
 
-## image creation
+1. Point the project domain at localhost by adding it to `/etc/hosts` (for example `127.0.0.1  acardona.42.fr`).
+2. Fill `srcs/.env` with the database and WordPress values the stack expects:
 
-### build
-`docker build <repo>` options:
-- `-t <tag_name>` to add a tag (img_name:version)
-- `--no-cache`
+   ```
+   SQL_HOST, SQL_DATABASE, SQL_USER, SQL_USER_PASSWORD, SQL_ROOT_PASSWORD
+   WP_DOMAIN_NAME, WP_SITE_TITLE, WP_ADMIN_LOGIN, WP_ADMIN_PASSWORD, WP_ADMIN_EMAIL
+   WP_USER_LOGIN, WP_USER_MAIL, WP_USER_PASSWORD
+   ```
+
+   The WordPress admin login may not contain the string `admin`; the startup script rejects it.
+3. Build and start everything:
+
+   ```bash
+   make          # build the images and run in the foreground
+   make upd      # same, detached
+   ```
+
+`make` also creates the host volume directories under the path set by `VOLUMES_DIR` in the `Makefile`.
+
+## 📖 Usage
+
+Once the stack is up, the site is served at `https://<WP_DOMAIN_NAME>` (accept the self-signed certificate warning).
+
+| Command | Effect |
+|---|---|
+| `make down` | stop and remove the containers |
+| `make downv` | also remove the volumes |
+| `make stop` / `make start` | pause and resume without rebuilding |
+| `make prune` | tear everything down and clear the Docker cache |
+| `make rm_dir` | remove the host volume directories |
+
+The MariaDB container exposes 3306 and WordPress exposes 9000 only on the internal network; neither is published to the host.
+
+## 📁 Structure
+
+```
+srcs/
+├── docker-compose.yml
+├── .env
+└── requirements/
+    ├── nginx/       Dockerfile · conf/nginx.conf
+    ├── wordpress/   Dockerfile · conf/www.conf · tools/startWordpress.sh
+    └── mariadb/     Dockerfile · tools/startMariadb.sh
+docs/
+└── docker-cheatsheet.md
+documentation/
+├── mariadb.md
+└── nginx.md
+```
+
+## 📚 Resources
+
+- [docs/docker-cheatsheet.md](docs/docker-cheatsheet.md): personal notes on Docker (containers, volumes, image builds) taken while working through the project.
+- [documentation/mariadb.md](documentation/mariadb.md), [documentation/nginx.md](documentation/nginx.md): SQL and Nginx reference notes.
+- [install.txt](install.txt): how the development VM was set up.
+- [Docker documentation](https://docs.docker.com/), [Docker Compose file reference](https://docs.docker.com/compose/compose-file/)
+
+---
+
+<p align="center"><sub>🏫 Project from the <strong>42</strong> common core — School 42 Paris.</sub></p>
